@@ -46,6 +46,12 @@ label {
   margin-top: 18px;
 }
 
+small {
+  display: block;
+  margin-top: 4px;
+  color: var(--false);
+}
+
 input, select, textarea {
   width: 100%;
   padding: 10px;
@@ -127,7 +133,15 @@ button.submit:hover {
   <form id="questaoForm">
 
     <label>E-mail institucional do professor</label>
-    <input type="email" name="email_professor" placeholder="nome@id.uff.br" required maxlength="100">
+    <input
+      type="email"
+      name="email_professor"
+      placeholder="nome@id.uff.br"
+      required
+      maxlength="100"
+      pattern="^[a-zA-Z0-9._%+-]+@id\.uff\.br$"
+      title="Utilize obrigatoriamente o e-mail institucional @id.uff.br">
+    <small>É obrigatório utilizar o e-mail institucional @id.uff.br</small>
 
     <label>Disciplina</label>
     <select name="disciplina" required>
@@ -164,15 +178,23 @@ button.submit:hover {
     </select>
 
     <label>Enunciado da pergunta</label>
-    <textarea name="pergunta" maxlength="1000" rows="5" required
+    <textarea
+      name="pergunta"
+      maxlength="1000"
+      rows="5"
+      required
       placeholder="Digite o enunciado completo da questão..."></textarea>
 
     <label>Alternativas</label>
     <div id="alternativas"></div>
 
-    <button type="button" class="add" onclick="addAlternativa()">+ Adicionar alternativa</button>
+    <button type="button" class="add" onclick="addAlternativa()">
+      + Adicionar alternativa
+    </button>
 
-    <button type="submit" class="submit">Enviar questão</button>
+    <button type="submit" class="submit">
+      Enviar questão
+    </button>
 
   </form>
 </div>
@@ -183,15 +205,22 @@ let altCount = 0;
 const MAX_ALT = 5;
 
 function addAlternativa() {
-  if (altCount >= MAX_ALT) return alert("Máximo de 5 alternativas.");
+  if (altCount >= MAX_ALT) {
+    alert("Máximo de 5 alternativas.");
+    return;
+  }
 
   altCount++;
+
   const div = document.createElement('div');
   div.className = 'alternativa';
+  div.dataset.correta = "false";
 
   div.innerHTML = `
-    <input type="text" placeholder="Texto da alternativa"
-      maxlength="200" required>
+    <input type="text"
+      placeholder="Texto da alternativa"
+      maxlength="200"
+      required>
 
     <div class="toggle">
       <button type="button" class="btn-true">Verdadeira</button>
@@ -199,8 +228,8 @@ function addAlternativa() {
     </div>
   `;
 
-  const [btnTrue, btnFalse] = div.querySelectorAll('button');
-  div.dataset.correta = "false";
+  const btnTrue = div.querySelector('.btn-true');
+  const btnFalse = div.querySelector('.btn-false');
 
   btnTrue.onclick = () => {
     btnTrue.classList.add('active');
@@ -225,13 +254,21 @@ document.getElementById('questaoForm').addEventListener('submit', e => {
 
   const form = e.target;
   const alternativas = [];
+  let existeCorreta = false;
 
   document.querySelectorAll('.alternativa').forEach(div => {
-    alternativas.push({
-      texto: div.querySelector('input').value,
-      correta: div.dataset.correta === "true"
-    });
+    const texto = div.querySelector('input').value;
+    const correta = div.dataset.correta === "true";
+
+    if (correta) existeCorreta = true;
+
+    alternativas.push({ texto, correta });
   });
+
+  if (!existeCorreta) {
+    alert("É obrigatório marcar pelo menos UMA alternativa como verdadeira.");
+    return;
+  }
 
   const payload = {
     email_professor: form.email_professor.value,
@@ -256,4 +293,3 @@ document.getElementById('questaoForm').addEventListener('submit', e => {
 
 </body>
 </html>
-
