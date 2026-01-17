@@ -122,6 +122,31 @@ button {
   <option>Difícil</option>
 </select>
 
+<!-- NOVO CAMPO: MÓDULO -->
+<label>Módulo</label>
+<select id="modulo" required>
+  <option value="">Selecione</option>
+  <option>Anestesiologia</option>
+  <option>Dermatologia</option>
+  <option>Equilíbrio Hidroeletrolítico</option>
+  <option>Farmacologia</option>
+  <option>Gastroenterologia</option>
+  <option>Geriatria</option>
+  <option>Ginecologia</option>
+  <option>Imunologia</option>
+  <option>Nefrologia</option>
+  <option>Neonatologia</option>
+  <option>Neurologia</option>
+  <option>Obstetrícia</option>
+  <option>Pneumologia</option>
+  <option>Urologia</option>
+  <option>Psiquiatria infantil</option>
+</select>
+
+<!-- NOVO CAMPO: ASSUNTO -->
+<label>Assunto</label>
+<input id="assunto" type="text" maxlength="150" placeholder="Ex: Acidose metabólica">
+
 <label>Tipo de questão</label>
 <select id="tipo" required>
   <option value="">Selecione</option>
@@ -212,6 +237,8 @@ form.onsubmit = async e => {
   const payload = {
     email: email.value,
     dificuldade: dificuldade.value,
+    modulo: modulo.value,
+    assunto: assunto.value,
     tipo: tipo.value,
     bibliografia: bibliografia.value,
     timestamp: new Date().toISOString()
