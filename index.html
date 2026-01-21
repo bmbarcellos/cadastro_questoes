@@ -154,9 +154,7 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Assunto</label>
-<select id="assunto" required disabled>
-  <option value="">Selecione o módulo primeiro</option>
-</select>
+<select id="assunto" disabled></select>
 
 <label>Tipo de questão</label>
 <select id="tipo" required>
@@ -165,17 +163,15 @@ textarea { min-height: 90px; }
   <option value="correlacao">Correlação</option>
 </select>
 
-<!-- MÚLTIPLA ESCOLHA -->
 <div id="multipla" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoME" required></textarea>
+  <textarea id="enunciadoME"></textarea>
   <div id="alternativas"></div>
 </div>
 
-<!-- CORRELAÇÃO -->
 <div id="correlacao" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoCOR" required></textarea>
+  <textarea id="enunciadoCOR"></textarea>
   <div id="pares"></div>
 </div>
 
@@ -191,7 +187,6 @@ textarea { min-height: 90px; }
 const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
 let envioEmAndamento = false;
 
-/* ===== ASSUNTOS POR MÓDULO ===== */
 const assuntosPorModulo = {
   "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
   "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
@@ -205,18 +200,17 @@ const assuntosPorModulo = {
   "Urologia": ["Incontinência urinária","PGM1","PGM2","PGM3","Disfunção sexual masculina","Transplante renal","HPB","Trauma urológico","Litíase urinária","Urgências urológicas"]
 };
 
-/* ===== CONDICIONAL MÓDULO → ASSUNTO ===== */
 modulo.onchange = () => {
   assunto.innerHTML = "";
   assunto.disabled = true;
+  assunto.required = false;
 
-  if (!assuntosPorModulo[modulo.value]) {
-    assunto.innerHTML = '<option value="">Selecione o módulo primeiro</option>';
-    return;
-  }
+  if (!assuntosPorModulo[modulo.value]) return;
 
   assunto.disabled = false;
+  assunto.required = true;
   assunto.innerHTML = '<option value="">Selecione</option>';
+
   assuntosPorModulo[modulo.value].forEach(a => {
     const opt = document.createElement("option");
     opt.value = a;
@@ -225,20 +219,24 @@ modulo.onchange = () => {
   });
 };
 
-/* ===== TIPO DE QUESTÃO ===== */
 tipo.onchange = () => {
   multipla.style.display = "none";
   correlacao.style.display = "none";
   alternativas.innerHTML = "";
   pares.innerHTML = "";
 
+  enunciadoME.required = false;
+  enunciadoCOR.required = false;
+
   if (tipo.value === "multipla") {
     multipla.style.display = "block";
+    enunciadoME.required = true;
     for (let i = 0; i < 5; i++) addAlternativa();
   }
 
   if (tipo.value === "correlacao") {
     correlacao.style.display = "block";
+    enunciadoCOR.required = true;
     for (let i = 0; i < 3; i++) addPar();
   }
 };
@@ -284,10 +282,10 @@ function addPar() {
   pares.appendChild(d);
 }
 
-/* ===== SUBMIT ===== */
 questaoForm.onsubmit = async e => {
   e.preventDefault();
   if (envioEmAndamento) return;
+
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
@@ -326,6 +324,8 @@ questaoForm.onsubmit = async e => {
     if (!r.ok) throw new Error();
     alert("Questão enviada com sucesso!");
     questaoForm.reset();
+    envioEmAndamento = false;
+    submitBtn.disabled = false;
   } catch {
     envioEmAndamento = false;
     submitBtn.disabled = false;
