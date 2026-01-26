@@ -135,11 +135,11 @@ textarea { min-height: 90px; }
 <form id="questaoForm" enctype="multipart/form-data">
 
 <label>E-mail institucional</label>
-<input id="email" name="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
 <div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
 
 <label>Grau de dificuldade</label>
-<select id="dificuldade" name="dificuldade" required>
+<select id="dificuldade" required>
   <option value="">Selecione</option>
   <option>Fácil</option>
   <option>Médio</option>
@@ -147,7 +147,7 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Módulo</label>
-<select id="modulo" name="modulo" required>
+<select id="modulo" required>
   <option value="">Selecione</option>
   <option>Anestesiologia</option>
   <option>Dermatologia</option>
@@ -162,10 +162,10 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Assunto</label>
-<select id="assunto" name="assunto" disabled></select>
+<select id="assunto" disabled></select>
 
 <label>Tipo de questão</label>
-<select id="tipo" name="tipo" required>
+<select id="tipo" required>
   <option value="">Selecione</option>
   <option value="multipla">Múltipla escolha</option>
   <option value="correlacao">Correlação</option>
@@ -173,10 +173,10 @@ textarea { min-height: 90px; }
 
 <div id="multipla" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoME" name="enunciado"></textarea>
+  <textarea id="enunciadoME"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemME" name="imagem" accept="image/*">
+  <input type="file" id="imagemME" accept="image/*">
   <img id="previewME" class="preview-img">
 
   <div id="alternativas"></div>
@@ -184,10 +184,10 @@ textarea { min-height: 90px; }
 
 <div id="correlacao" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoCOR" name="enunciado"></textarea>
+  <textarea id="enunciadoCOR"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemCOR" name="imagem" accept="image/*">
+  <input type="file" id="imagemCOR" accept="image/*">
   <img id="previewCOR" class="preview-img">
 
   <div id="pares"></div>
@@ -195,7 +195,7 @@ textarea { min-height: 90px; }
 </div>
 
 <label>Bibliografia</label>
-<textarea id="bibliografia" name="bibliografia" required maxlength="500"></textarea>
+<textarea id="bibliografia" required maxlength="500"></textarea>
 
 <button class="submit" id="submitBtn" type="submit">Enviar questão</button>
 
@@ -207,7 +207,7 @@ const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
 let envioEmAndamento = false;
 
 /* ========= ASSUNTOS ========= */
-const assuntosPorModulo = { /* (mantido exatamente como estava) */ 
+const assuntosPorModulo = {
   "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
   "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
   "Farmacologia": ["Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos","Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides","Anti-tussígenos e antigripais","Farmacologia da asma"],
@@ -303,25 +303,36 @@ questaoForm.onsubmit = async e => {
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
-  const fd = new FormData(questaoForm);
-  fd.append("timestamp", new Date().toISOString());
+  const fd = new FormData();
+
+  fd.append("body[email]", email.value);
+  fd.append("body[dificuldade]", dificuldade.value);
+  fd.append("body[modulo]", modulo.value);
+  fd.append("body[assunto]", assunto.value);
+  fd.append("body[tipo]", tipo.value);
+  fd.append("body[bibliografia]", bibliografia.value);
+  fd.append("body[timestamp]", new Date().toISOString());
 
   if (tipo.value === "multipla") {
-    fd.append("alternativas", JSON.stringify(
+    fd.append("body[enunciado]", enunciadoME.value);
+    fd.append("body[alternativas]", JSON.stringify(
       [...document.querySelectorAll(".alternativa")].map(a => ({
         texto: a.querySelector("input").value,
         correta: a.dataset.correta === "true"
       }))
     ));
+    if (imagemME.files[0]) fd.append("imagem", imagemME.files[0]);
   }
 
   if (tipo.value === "correlacao") {
-    fd.append("pares", JSON.stringify(
+    fd.append("body[enunciado]", enunciadoCOR.value);
+    fd.append("body[pares]", JSON.stringify(
       [...document.querySelectorAll(".par")].map(p => {
         const i = p.querySelectorAll("input");
         return { colunaA: i[0].value, colunaB: i[1].value };
       })
     ));
+    if (imagemCOR.files[0]) fd.append("imagem", imagemCOR.files[0]);
   }
 
   try {
