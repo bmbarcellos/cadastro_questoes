@@ -132,14 +132,14 @@ textarea { min-height: 90px; }
 </div>
 
 <div class="container">
-<form id="questaoForm">
+<form id="questaoForm" enctype="multipart/form-data">
 
 <label>E-mail institucional</label>
-<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<input id="email" name="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
 <div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
 
 <label>Grau de dificuldade</label>
-<select id="dificuldade" required>
+<select id="dificuldade" name="dificuldade" required>
   <option value="">Selecione</option>
   <option>Fácil</option>
   <option>Médio</option>
@@ -147,7 +147,7 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Módulo</label>
-<select id="modulo" required>
+<select id="modulo" name="modulo" required>
   <option value="">Selecione</option>
   <option>Anestesiologia</option>
   <option>Dermatologia</option>
@@ -162,10 +162,10 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Assunto</label>
-<select id="assunto" disabled></select>
+<select id="assunto" name="assunto" disabled></select>
 
 <label>Tipo de questão</label>
-<select id="tipo" required>
+<select id="tipo" name="tipo" required>
   <option value="">Selecione</option>
   <option value="multipla">Múltipla escolha</option>
   <option value="correlacao">Correlação</option>
@@ -173,10 +173,10 @@ textarea { min-height: 90px; }
 
 <div id="multipla" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoME"></textarea>
+  <textarea id="enunciadoME" name="enunciado"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemME" accept="image/*">
+  <input type="file" id="imagemME" name="imagem" accept="image/*">
   <img id="previewME" class="preview-img">
 
   <div id="alternativas"></div>
@@ -184,10 +184,10 @@ textarea { min-height: 90px; }
 
 <div id="correlacao" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoCOR"></textarea>
+  <textarea id="enunciadoCOR" name="enunciado"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemCOR" accept="image/*">
+  <input type="file" id="imagemCOR" name="imagem" accept="image/*">
   <img id="previewCOR" class="preview-img">
 
   <div id="pares"></div>
@@ -195,7 +195,7 @@ textarea { min-height: 90px; }
 </div>
 
 <label>Bibliografia</label>
-<textarea id="bibliografia" required maxlength="500"></textarea>
+<textarea id="bibliografia" name="bibliografia" required maxlength="500"></textarea>
 
 <button class="submit" id="submitBtn" type="submit">Enviar questão</button>
 
@@ -207,7 +207,7 @@ const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
 let envioEmAndamento = false;
 
 /* ========= ASSUNTOS ========= */
-const assuntosPorModulo = {
+const assuntosPorModulo = { /* (mantido exatamente como estava) */ 
   "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
   "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
   "Farmacologia": ["Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos","Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides","Anti-tussígenos e antigripais","Farmacologia da asma"],
@@ -220,19 +220,82 @@ const assuntosPorModulo = {
   "Urologia": ["Incontinência urinária","PGM","Disfunção sexual masculina","Transplante renal","HPB","Trauma urológico","Litíase urinária","Urgências urológicas"]
 };
 
+modulo.onchange = () => {
+  assunto.innerHTML = "";
+  assunto.disabled = true;
+  if (!assuntosPorModulo[modulo.value]) return;
+  assunto.disabled = false;
+  assunto.innerHTML = '<option value="">Selecione</option>';
+  assuntosPorModulo[modulo.value].forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    assunto.appendChild(opt);
+  });
+};
 
-/* ========= PREVIEW ========= */
+tipo.onchange = () => {
+  multipla.style.display = "none";
+  correlacao.style.display = "none";
+  alternativas.innerHTML = "";
+  pares.innerHTML = "";
+  if (tipo.value === "multipla") {
+    multipla.style.display = "block";
+    for (let i = 0; i < 5; i++) addAlternativa();
+  }
+  if (tipo.value === "correlacao") {
+    correlacao.style.display = "block";
+    for (let i = 0; i < 3; i++) addPar();
+  }
+};
+
+function addAlternativa() {
+  const d = document.createElement("div");
+  d.className = "alternativa";
+  d.dataset.correta = "false";
+  d.innerHTML = `
+    <input required placeholder="Alternativa">
+    <div class="toggle">
+      <button type="button" class="btn-true">Verdadeira</button>
+      <button type="button" class="btn-false active">Falsa</button>
+    </div>`;
+  const [v,f] = d.querySelectorAll("button");
+  v.onclick = () => {
+    document.querySelectorAll(".alternativa").forEach(a => {
+      a.dataset.correta = "false";
+      a.querySelector(".btn-true").classList.remove("active");
+      a.querySelector(".btn-false").classList.add("active");
+    });
+    v.classList.add("active");
+    f.classList.remove("active");
+    d.dataset.correta = "true";
+  };
+  f.onclick = () => {
+    f.classList.add("active");
+    v.classList.remove("active");
+    d.dataset.correta = "false";
+  };
+  alternativas.appendChild(d);
+}
+
+function addPar() {
+  const d = document.createElement("div");
+  d.className = "par";
+  d.innerHTML = `
+    <input required placeholder="Coluna A">
+    <input required placeholder="Coluna B">`;
+  pares.appendChild(d);
+}
+
 imagemME.onchange = () => {
   previewME.src = URL.createObjectURL(imagemME.files[0]);
   previewME.style.display = "block";
 };
-
 imagemCOR.onchange = () => {
   previewCOR.src = URL.createObjectURL(imagemCOR.files[0]);
   previewCOR.style.display = "block";
 };
 
-/* ========= SUBMIT BINÁRIO ========= */
 questaoForm.onsubmit = async e => {
   e.preventDefault();
   if (envioEmAndamento) return;
@@ -240,47 +303,29 @@ questaoForm.onsubmit = async e => {
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
-  const formData = new FormData();
-
-  formData.append("email", email.value);
-  formData.append("dificuldade", dificuldade.value);
-  formData.append("modulo", modulo.value);
-  formData.append("assunto", assunto.value);
-  formData.append("tipo", tipo.value);
-  formData.append("bibliografia", bibliografia.value);
-  formData.append("timestamp", new Date().toISOString());
+  const fd = new FormData(questaoForm);
+  fd.append("timestamp", new Date().toISOString());
 
   if (tipo.value === "multipla") {
-    formData.append("enunciado", enunciadoME.value);
-    formData.append("alternativas", JSON.stringify(
+    fd.append("alternativas", JSON.stringify(
       [...document.querySelectorAll(".alternativa")].map(a => ({
         texto: a.querySelector("input").value,
         correta: a.dataset.correta === "true"
       }))
     ));
-    if (imagemME.files[0]) {
-      formData.append("imagem", imagemME.files[0]);
-    }
   }
 
   if (tipo.value === "correlacao") {
-    formData.append("enunciado", enunciadoCOR.value);
-    formData.append("pares", JSON.stringify(
+    fd.append("pares", JSON.stringify(
       [...document.querySelectorAll(".par")].map(p => {
         const i = p.querySelectorAll("input");
         return { colunaA: i[0].value, colunaB: i[1].value };
       })
     ));
-    if (imagemCOR.files[0]) {
-      formData.append("imagem", imagemCOR.files[0]);
-    }
   }
 
   try {
-    const r = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      body: formData
-    });
+    const r = await fetch(WEBHOOK_URL, { method: "POST", body: fd });
     if (!r.ok) throw new Error();
     alert("Questão enviada com sucesso!");
     questaoForm.reset();
