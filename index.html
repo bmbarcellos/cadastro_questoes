@@ -207,8 +207,19 @@ const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
 let envioEmAndamento = false;
 
 /* ========= ASSUNTOS ========= */
-const assuntosPorModulo = { /* (inalterado) */ };
-/* 👉 mantido exatamente igual ao seu código */
+const assuntosPorModulo = {
+  "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
+  "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
+  "Farmacologia": ["Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos","Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides","Anti-tussígenos e antigripais","Farmacologia da asma"],
+  "Gastroenterologia": ["Hepatites virais","Doença ulcerosa péptica","Diarréia e parasitose","Cirrose hepática e complicações","Pancreatites","Intolerância e alergias alimentares","Doença inflamatória intestinal","Tumores esofagogástricos","CCR","Síndrome do Intestino Irritável e constipação intestinal","DRGE","Hemorragia digestiva"],
+  "Geriatria": ["Alterações fisiológicas do envelhecimento","Prescrição em idosos","Grandes síndromes geriátricas","Neurogeriatria"],
+  "Imunologia": ["Anafilaxia","Urticária","Rinite alérgica","Asma grave","Alergia alimentar","Dermatite atópica","Erros inatos da imunidade","Reação adversa a droga"],
+  "Nefrologia": ["Princípios do equilíbrio ácido-base","Distúrbios ácido-base (acidoses)","Balanço do K / distúrbios do K","Hipercalcemia","Regulação osmolar volêmica, distúrbio do Na e água","Síndrome nefrótica","Glomerulonefrites e síndrome nefrítica","Rim na gestação","Nefrite túbulo-intersticial","Síndromes edemigênicas","Insuficiência renal aguda","Doença renal crônica","Transplante renal"],
+  "Neurologia": ["1º e 2º neurônios motores","Demência","Epilepsia","Doença de Parkinson e outros distúrbios do movimento","Cefaleias","Doença cerebrovascular","Coma e síncope","Neuropatias periféricas"],
+  "Pneumologia": ["Asma","DPOC","Tabagismo"],
+  "Urologia": ["Incontinência urinária","PGM","Disfunção sexual masculina","Transplante renal","HPB","Trauma urológico","Litíase urinária","Urgências urológicas"]
+};
+
 
 /* ========= PREVIEW ========= */
 imagemME.onchange = () => {
