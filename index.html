@@ -112,6 +112,11 @@ textarea { min-height: 90px; }
   border: none;
   cursor: pointer;
 }
+
+.submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 </style>
 </head>
 
@@ -126,7 +131,8 @@ textarea { min-height: 90px; }
 <form id="questaoForm">
 
 <label>E-mail institucional</label>
-<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<input id="email" type="email" required pattern="^[^@]+@id\\.uff\\.br$">
+<div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
 
 <label>Grau de dificuldade</label>
 <select id="dificuldade" required>
@@ -188,52 +194,56 @@ textarea { min-height: 90px; }
 </div>
 
 <script>
+const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
+let envioEmAndamento = false;
+
 const assuntosPorModulo = {
   "Anestesiologia": [
-    "Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização",
-    "Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia",
-    "Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"
+    "Avaliação pré-anestésica", "Anestesia geral", "Bloqueios centrais",
+    "Monitorização", "Reanimação cardiopulmonar", "Reposição volêmica",
+    "Intubação orotraqueal e oxigenoterapia", "Segurança do paciente",
+    "Gerenciamento da dor", "Complicações em anestesia"
   ],
   "Dermatologia": [
-    "Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses",
-    "Lesões pigmentadas","Micoses profundas","Sífilis"
+    "Câncer de pele", "Paraneoplasias", "Farmacodermias", "Leishmaniose",
+    "Buloses", "Lesões pigmentadas", "Micoses profundas", "Sífilis"
   ],
   "Farmacologia": [
-    "Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos",
-    "Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides",
-    "Anti-tussígenos e antigripais","Farmacologia da asma"
+    "Anticonstipantes", "Antidiarreicos", "Antifiséticos, antieméticos, procinéticos",
+    "Farmacologia da doença ácido-péptica", "Anti-histamínicos", "Glicocorticóides",
+    "Anti-tussígenos e antigripais", "Farmacologia da asma"
   ],
   "Gastroenterologia": [
-    "Hepatites virais","Doença ulcerosa péptica","Diarréia e parasitose",
-    "Cirrose hepática e complicações","Pancreatites","Intolerância e alergias alimentares",
-    "Doença inflamatória intestinal","Tumores esofagogástricos","CCR",
-    "Síndrome do Intestino Irritável e constipação intestinal","DRGE","Hemorragia digestiva"
+    "Hepatites virais", "Doença ulcerosa péptica", "Diarréia e parasitose",
+    "Cirrose hepática e complicações", "Pancreatites", "Intolerância e alergias alimentares",
+    "Doença inflamatória intestinal", "Tumores esofagogástricos", "CCR",
+    "Síndrome do Intestino Irritável e constipação intestinal", "DRGE", "Hemorragia digestiva"
   ],
   "Geriatria": [
-    "Alterações fisiológicas do envelhecimento","Prescrição em idosos",
-    "Grandes síndromes geriátricas","Neurogeriatria"
+    "Alterações fisiológicas do envelhecimento", "Prescrição em idosos",
+    "Grandes síndromes geriátricas", "Neurogeriatria"
   ],
   "Imunologia": [
-    "Anafilaxia","Urticária","Rinite alérgica","Asma grave","Alergia alimentar",
-    "Dermatite atópica","Erros inatos da imunidade","Reação adversa a droga"
+    "Anafilaxia", "Urticária", "Rinite alérgica", "Asma grave", "Alergia alimentar",
+    "Dermatite atópica", "Erros inatos da imunidade", "Reação adversa a droga"
   ],
   "Nefrologia": [
-    "Princípios do equilíbrio ácido-base","Distúrbios ácido-base (acidoses)",
-    "Balanço do K / distúrbios do K","Hipercalcemia",
-    "Regulação osmolar volêmica, distúrbio do Na e água","Síndrome nefrótica",
-    "Glomerulonefrites e síndrome nefrítica","Rim na gestação",
-    "Nefrite túbulo-intersticial","Síndromes edemigênicas",
-    "Insuficiência renal aguda","Doença renal crônica","Transplante renal"
+    "Princípios do equilíbrio ácido-base", "Distúrbios ácido-base (acidoses)",
+    "Balanço do K / distúrbios do K", "Hipercalcemia",
+    "Regulação osmolar volêmica, distúrbio do Na e água", "Síndrome nefrótica",
+    "Glomerulonefrites e síndrome nefrítica", "Rim na gestação",
+    "Nefrite túbulo-intersticial", "Síndromes edemigênicas",
+    "Insuficiência renal aguda", "Doença renal crônica", "Transplante renal"
   ],
   "Neurologia": [
-    "1º e 2º neurônios motores","Demência","Epilepsia",
+    "1º e 2º neurônios motores", "Demência", "Epilepsia",
     "Doença de Parkinson e outros distúrbios do movimento",
-    "Cefaleias","Doença cerebrovascular","Coma e síncope","Neuropatias periféricas"
+    "Cefaleias", "Doença cerebrovascular", "Coma e síncope", "Neuropatias periféricas"
   ],
   "Urologia": [
-    "Incontinência urinária","PGM","Disfunção sexual masculina",
-    "Transplante renal","HPB","Trauma urológico",
-    "Litíase urinária","Urgências urológicas"
+    "Incontinência urinária", "PGM", "Disfunção sexual masculina",
+    "Transplante renal", "HPB", "Trauma urológico",
+    "Litíase urinária", "Urgências urológicas"
   ]
 };
 
@@ -251,7 +261,101 @@ modulo.onchange = () => {
     assunto.appendChild(opt);
   });
 };
-</script>
 
-</body>
-</html>
+tipo.onchange = () => {
+  multipla.style.display = "none";
+  correlacao.style.display = "none";
+  alternativas.innerHTML = "";
+  pares.innerHTML = "";
+
+  enunciadoME.required = false;
+  enunciadoCOR.required = false;
+
+  if (tipo.value === "multipla") {
+    multipla.style.display = "block";
+    enunciadoME.required = true;
+    for (let i = 0; i < 5; i++) addAlternativa();
+  }
+
+  if (tipo.value === "correlacao") {
+    correlacao.style.display = "block";
+    enunciadoCOR.required = true;
+    for (let i = 0; i < 3; i++) addPar();
+  }
+};
+
+function addAlternativa() {
+  const d = document.createElement("div");
+  d.className = "alternativa";
+  d.dataset.correta = "false";
+  d.innerHTML = `
+    <input required placeholder="Alternativa">
+    <div class="toggle">
+      <button type="button" class="btn-true">Verdadeira</button>
+      <button type="button" class="btn-false active">Falsa</button>
+    </div>`;
+  const [v,f] = d.querySelectorAll("button");
+
+  v.onclick = () => {
+    document.querySelectorAll(".alternativa").forEach(a => {
+      a.dataset.correta = "false";
+      a.querySelector(".btn-true").classList.remove("active");
+      a.querySelector(".btn-false").classList.add("active");
+    });
+    v.classList.add("active");
+    f.classList.remove("active");
+    d.dataset.correta = "true";
+  };
+
+  f.onclick = () => {
+    f.classList.add("active");
+    v.classList.remove("active");
+    d.dataset.correta = "false";
+  };
+
+  alternativas.appendChild(d);
+}
+
+function addPar() {
+  const d = document.createElement("div");
+  d.className = "par";
+  d.innerHTML = `
+    <input required placeholder="Coluna A">
+    <input required placeholder="Coluna B">`;
+  pares.appendChild(d);
+}
+
+btnAddPar.onclick = addPar;
+
+questaoForm.onsubmit = async e => {
+  e.preventDefault();
+  if (envioEmAndamento) return;
+
+  envioEmAndamento = true;
+  submitBtn.disabled = true;
+
+  const payload = {
+    email: email.value,
+    dificuldade: dificuldade.value,
+    modulo: modulo.value,
+    assunto: assunto.value,
+    tipo: tipo.value,
+    bibliografia: bibliografia.value,
+    timestamp: new Date().toISOString()
+  };
+
+  if (tipo.value === "multipla") {
+    payload.enunciado = enunciadoME.value;
+    payload.alternativas = [...document.querySelectorAll(".alternativa")].map(a => ({
+      texto: a.querySelector("input").value,
+      correta: a.dataset.correta === "true"
+    }));
+  }
+
+  if (tipo.value === "correlacao") {
+    payload.enunciado = enunciadoCOR.value;
+    payload.pares = [...document.querySelectorAll(".par")].map(p => {
+      const i = p.querySelectorAll("input");
+      return { colunaA: i[0].value, colunaB: i[1].value };
+    });
+::contentReference[oaicite:0]{index=0}
