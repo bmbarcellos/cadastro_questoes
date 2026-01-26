@@ -132,14 +132,14 @@ textarea { min-height: 90px; }
 </div>
 
 <div class="container">
-<form id="questaoForm" enctype="multipart/form-data">
+<form id="questaoForm">
 
 <label>E-mail institucional</label>
-<input id="email" name="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
 <div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
 
 <label>Grau de dificuldade</label>
-<select id="dificuldade" name="dificuldade" required>
+<select id="dificuldade" required>
   <option value="">Selecione</option>
   <option>Fácil</option>
   <option>Médio</option>
@@ -147,7 +147,7 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Módulo</label>
-<select id="modulo" name="modulo" required>
+<select id="modulo" required>
   <option value="">Selecione</option>
   <option>Anestesiologia</option>
   <option>Dermatologia</option>
@@ -162,10 +162,10 @@ textarea { min-height: 90px; }
 </select>
 
 <label>Assunto</label>
-<select id="assunto" name="assunto" disabled></select>
+<select id="assunto" disabled></select>
 
 <label>Tipo de questão</label>
-<select id="tipo" name="tipo" required>
+<select id="tipo" required>
   <option value="">Selecione</option>
   <option value="multipla">Múltipla escolha</option>
   <option value="correlacao">Correlação</option>
@@ -173,10 +173,10 @@ textarea { min-height: 90px; }
 
 <div id="multipla" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoME" name="enunciado"></textarea>
+  <textarea id="enunciadoME"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemME" name="imagem" accept="image/*">
+  <input type="file" id="imagemME" accept="image/*">
   <img id="previewME" class="preview-img">
 
   <div id="alternativas"></div>
@@ -184,10 +184,10 @@ textarea { min-height: 90px; }
 
 <div id="correlacao" class="section" style="display:none">
   <label>Enunciado</label>
-  <textarea id="enunciadoCOR" name="enunciado"></textarea>
+  <textarea id="enunciadoCOR"></textarea>
 
   <label>Imagem da questão (opcional)</label>
-  <input type="file" id="imagemCOR" name="imagem" accept="image/*">
+  <input type="file" id="imagemCOR" accept="image/*">
   <img id="previewCOR" class="preview-img">
 
   <div id="pares"></div>
@@ -195,7 +195,7 @@ textarea { min-height: 90px; }
 </div>
 
 <label>Bibliografia</label>
-<textarea id="bibliografia" name="bibliografia" required maxlength="500"></textarea>
+<textarea id="bibliografia" required maxlength="500"></textarea>
 
 <button class="submit" id="submitBtn" type="submit">Enviar questão</button>
 
@@ -223,9 +223,14 @@ const assuntosPorModulo = {
 modulo.onchange = () => {
   assunto.innerHTML = "";
   assunto.disabled = true;
+  assunto.required = false;
+
   if (!assuntosPorModulo[modulo.value]) return;
+
   assunto.disabled = false;
+  assunto.required = true;
   assunto.innerHTML = '<option value="">Selecione</option>';
+
   assuntosPorModulo[modulo.value].forEach(a => {
     const opt = document.createElement("option");
     opt.value = a;
@@ -239,12 +244,19 @@ tipo.onchange = () => {
   correlacao.style.display = "none";
   alternativas.innerHTML = "";
   pares.innerHTML = "";
+
+  enunciadoME.required = false;
+  enunciadoCOR.required = false;
+
   if (tipo.value === "multipla") {
     multipla.style.display = "block";
+    enunciadoME.required = true;
     for (let i = 0; i < 5; i++) addAlternativa();
   }
+
   if (tipo.value === "correlacao") {
     correlacao.style.display = "block";
+    enunciadoCOR.required = true;
     for (let i = 0; i < 3; i++) addPar();
   }
 };
@@ -260,6 +272,7 @@ function addAlternativa() {
       <button type="button" class="btn-false active">Falsa</button>
     </div>`;
   const [v,f] = d.querySelectorAll("button");
+
   v.onclick = () => {
     document.querySelectorAll(".alternativa").forEach(a => {
       a.dataset.correta = "false";
@@ -270,11 +283,13 @@ function addAlternativa() {
     f.classList.remove("active");
     d.dataset.correta = "true";
   };
+
   f.onclick = () => {
     f.classList.add("active");
     v.classList.remove("active");
     d.dataset.correta = "false";
   };
+
   alternativas.appendChild(d);
 }
 
@@ -285,6 +300,16 @@ function addPar() {
     <input required placeholder="Coluna A">
     <input required placeholder="Coluna B">`;
   pares.appendChild(d);
+}
+
+/* ========= IMAGEM BASE64 ========= */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 imagemME.onchange = () => {
@@ -304,29 +329,48 @@ questaoForm.onsubmit = async e => {
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
-  const fd = new FormData(questaoForm);
-  fd.append("timestamp", new Date().toISOString());
+  const payload = {
+    email: email.value,
+    dificuldade: dificuldade.value,
+    modulo: modulo.value,
+    assunto: assunto.value,
+    tipo: tipo.value,
+    bibliografia: bibliografia.value,
+    timestamp: new Date().toISOString()
+  };
+
+  let imagemFile = null;
 
   if (tipo.value === "multipla") {
-    fd.append("alternativas", JSON.stringify(
-      [...document.querySelectorAll(".alternativa")].map(a => ({
-        texto: a.querySelector("input").value,
-        correta: a.dataset.correta === "true"
-      }))
-    ));
+    payload.enunciado = enunciadoME.value;
+    payload.alternativas = [...document.querySelectorAll(".alternativa")].map(a => ({
+      texto: a.querySelector("input").value,
+      correta: a.dataset.correta === "true"
+    }));
+    imagemFile = imagemME.files[0];
   }
 
   if (tipo.value === "correlacao") {
-    fd.append("pares", JSON.stringify(
-      [...document.querySelectorAll(".par")].map(p => {
-        const i = p.querySelectorAll("input");
-        return { colunaA: i[0].value, colunaB: i[1].value };
-      })
-    ));
+    payload.enunciado = enunciadoCOR.value;
+    payload.pares = [...document.querySelectorAll(".par")].map(p => {
+      const i = p.querySelectorAll("input");
+      return { colunaA: i[0].value, colunaB: i[1].value };
+    });
+    imagemFile = imagemCOR.files[0];
+  }
+
+  if (imagemFile) {
+    payload.imagem_base64 = await fileToBase64(imagemFile);
+    payload.imagem_nome = imagemFile.name;
+    payload.imagem_tipo = imagemFile.type;
   }
 
   try {
-    const r = await fetch(WEBHOOK_URL, { method: "POST", body: fd });
+    const r = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     if (!r.ok) throw new Error();
     alert("Questão enviada com sucesso!");
     questaoForm.reset();
