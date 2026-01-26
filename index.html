@@ -121,15 +121,6 @@ textarea { min-height: 90px; }
   opacity: .6;
   cursor: not-allowed;
 }
-
-/* ===== PREVIEW ===== */
-.preview-box {
-  margin-top: 30px;
-  padding: 20px;
-  border: 2px dashed #9CA3AF;
-  background: #FAFAFA;
-  display: none;
-}
 </style>
 </head>
 
@@ -143,24 +134,68 @@ textarea { min-height: 90px; }
 <div class="container">
 <form id="questaoForm">
 
-<!-- TODO O FORMULÁRIO ORIGINAL – SEM ALTERAÇÕES -->
+<label>E-mail institucional</label>
+<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
 
-<!-- ... (todo o HTML do formulário permanece igual ao seu) ... -->
+<label>Grau de dificuldade</label>
+<select id="dificuldade" required>
+  <option value="">Selecione</option>
+  <option>Fácil</option>
+  <option>Médio</option>
+  <option>Difícil</option>
+</select>
+
+<label>Módulo</label>
+<select id="modulo" required>
+  <option value="">Selecione</option>
+  <option>Anestesiologia</option>
+  <option>Dermatologia</option>
+  <option>Farmacologia</option>
+  <option>Gastroenterologia</option>
+  <option>Geriatria</option>
+  <option>Imunologia</option>
+  <option>Nefrologia</option>
+  <option>Neurologia</option>
+  <option>Pneumologia</option>
+  <option>Urologia</option>
+</select>
+
+<label>Assunto</label>
+<select id="assunto" disabled></select>
+
+<label>Tipo de questão</label>
+<select id="tipo" required>
+  <option value="">Selecione</option>
+  <option value="multipla">Múltipla escolha</option>
+  <option value="correlacao">Correlação</option>
+</select>
+
+<div id="multipla" class="section" style="display:none">
+  <label>Enunciado</label>
+  <textarea id="enunciadoME"></textarea>
+
+  <label>Imagem da questão (opcional)</label>
+  <input type="file" id="imagemME" accept="image/*">
+  <img id="previewME" class="preview-img">
+
+  <div id="alternativas"></div>
+</div>
+
+<div id="correlacao" class="section" style="display:none">
+  <label>Enunciado</label>
+  <textarea id="enunciadoCOR"></textarea>
+
+  <label>Imagem da questão (opcional)</label>
+  <input type="file" id="imagemCOR" accept="image/*">
+  <img id="previewCOR" class="preview-img">
+
+  <div id="pares"></div>
+  <button type="button" onclick="addPar()">Adicionar par</button>
+</div>
 
 <label>Bibliografia</label>
 <textarea id="bibliografia" required maxlength="500"></textarea>
-
-<!-- BOTÃO DE PREVIEW -->
-<button type="button" class="submit" onclick="mostrarPreview()">Pré-visualizar questão</button>
-
-<!-- BLOCO DE PREVIEW -->
-<div id="preview" class="preview-box">
-  <h3>Pré-visualização da questão</h3>
-  <p><strong>Enunciado:</strong></p>
-  <p id="previewEnunciado"></p>
-  <div id="previewAlternativas"></div>
-  <img id="previewImagem" class="preview-img">
-</div>
 
 <button class="submit" id="submitBtn" type="submit">Enviar questão</button>
 
@@ -168,44 +203,184 @@ textarea { min-height: 90px; }
 </div>
 
 <script>
-/* ========= PREVIEW (ISOLADO, NÃO AFETA ENVIO) ========= */
-function mostrarPreview() {
-  preview.style.display = "block";
-  previewAlternativas.innerHTML = "";
+const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
+let envioEmAndamento = false;
+
+/* ========= ASSUNTOS ========= */
+const assuntosPorModulo = {
+  "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
+  "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
+  "Farmacologia": ["Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos","Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides","Anti-tussígenos e antigripais","Farmacologia da asma"],
+  "Gastroenterologia": ["Hepatites virais","Doença ulcerosa péptica","Diarréia e parasitose","Cirrose hepática e complicações","Pancreatites","Intolerância e alergias alimentares","Doença inflamatória intestinal","Tumores esofagogástricos","CCR","Síndrome do Intestino Irritável e constipação intestinal","DRGE","Hemorragia digestiva"],
+  "Geriatria": ["Alterações fisiológicas do envelhecimento","Prescrição em idosos","Grandes síndromes geriátricas","Neurogeriatria"],
+  "Imunologia": ["Anafilaxia","Urticária","Rinite alérgica","Asma grave","Alergia alimentar","Dermatite atópica","Erros inatos da imunidade","Reação adversa a droga"],
+  "Nefrologia": ["Princípios do equilíbrio ácido-base","Distúrbios ácido-base (acidoses)","Balanço do K / distúrbios do K","Hipercalcemia","Regulação osmolar volêmica, distúrbio do Na e água","Síndrome nefrótica","Glomerulonefrites e síndrome nefrítica","Rim na gestação","Nefrite túbulo-intersticial","Síndromes edemigênicas","Insuficiência renal aguda","Doença renal crônica","Transplante renal"],
+  "Neurologia": ["1º e 2º neurônios motores","Demência","Epilepsia","Doença de Parkinson e outros distúrbios do movimento","Cefaleias","Doença cerebrovascular","Coma e síncope","Neuropatias periféricas"],
+  "Pneumologia": ["Asma","DPOC","Tabagismo"],
+  "Urologia": ["Incontinência urinária","PGM","Disfunção sexual masculina","Transplante renal","HPB","Trauma urológico","Litíase urinária","Urgências urológicas"]
+};
+
+modulo.onchange = () => {
+  assunto.innerHTML = "";
+  assunto.disabled = true;
+  assunto.required = false;
+
+  if (!assuntosPorModulo[modulo.value]) return;
+
+  assunto.disabled = false;
+  assunto.required = true;
+  assunto.innerHTML = '<option value="">Selecione</option>';
+
+  assuntosPorModulo[modulo.value].forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    assunto.appendChild(opt);
+  });
+};
+
+tipo.onchange = () => {
+  multipla.style.display = "none";
+  correlacao.style.display = "none";
+  alternativas.innerHTML = "";
+  pares.innerHTML = "";
+
+  enunciadoME.required = false;
+  enunciadoCOR.required = false;
 
   if (tipo.value === "multipla") {
-    previewEnunciado.textContent = enunciadoME.value;
-
-    document.querySelectorAll(".alternativa input").forEach((i, idx) => {
-      previewAlternativas.innerHTML += `<div>${idx + 1}. ${i.value}</div>`;
-    });
-
-    if (imagemME.files[0]) {
-      previewImagem.src = URL.createObjectURL(imagemME.files[0]);
-      previewImagem.style.display = "block";
-    } else {
-      previewImagem.style.display = "none";
-    }
+    multipla.style.display = "block";
+    enunciadoME.required = true;
+    for (let i = 0; i < 5; i++) addAlternativa();
   }
 
   if (tipo.value === "correlacao") {
-    previewEnunciado.textContent = enunciadoCOR.value;
+    correlacao.style.display = "block";
+    enunciadoCOR.required = true;
+    for (let i = 0; i < 3; i++) addPar();
+  }
+};
 
-    document.querySelectorAll(".par").forEach((p, idx) => {
-      const i = p.querySelectorAll("input");
-      previewAlternativas.innerHTML += `<div>${idx + 1}. ${i[0].value} → ${i[1].value}</div>`;
+function addAlternativa() {
+  const d = document.createElement("div");
+  d.className = "alternativa";
+  d.dataset.correta = "false";
+  d.innerHTML = `
+    <input required placeholder="Alternativa">
+    <div class="toggle">
+      <button type="button" class="btn-true">Verdadeira</button>
+      <button type="button" class="btn-false active">Falsa</button>
+    </div>`;
+  const [v,f] = d.querySelectorAll("button");
+
+  v.onclick = () => {
+    document.querySelectorAll(".alternativa").forEach(a => {
+      a.dataset.correta = "false";
+      a.querySelector(".btn-true").classList.remove("active");
+      a.querySelector(".btn-false").classList.add("active");
     });
+    v.classList.add("active");
+    f.classList.remove("active");
+    d.dataset.correta = "true";
+  };
 
-    if (imagemCOR.files[0]) {
-      previewImagem.src = URL.createObjectURL(imagemCOR.files[0]);
-      previewImagem.style.display = "block";
-    } else {
-      previewImagem.style.display = "none";
-    }
+  f.onclick = () => {
+    f.classList.add("active");
+    v.classList.remove("active");
+    d.dataset.correta = "false";
+  };
+
+  alternativas.appendChild(d);
+}
+
+function addPar() {
+  const d = document.createElement("div");
+  d.className = "par";
+  d.innerHTML = `
+    <input required placeholder="Coluna A">
+    <input required placeholder="Coluna B">`;
+  pares.appendChild(d);
+}
+
+/* ========= IMAGEM BASE64 ========= */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+imagemME.onchange = () => {
+  previewME.src = URL.createObjectURL(imagemME.files[0]);
+  previewME.style.display = "block";
+};
+
+imagemCOR.onchange = () => {
+  previewCOR.src = URL.createObjectURL(imagemCOR.files[0]);
+  previewCOR.style.display = "block";
+};
+
+questaoForm.onsubmit = async e => {
+  e.preventDefault();
+  if (envioEmAndamento) return;
+
+  envioEmAndamento = true;
+  submitBtn.disabled = true;
+
+  const payload = {
+    email: email.value,
+    dificuldade: dificuldade.value,
+    modulo: modulo.value,
+    assunto: assunto.value,
+    tipo: tipo.value,
+    bibliografia: bibliografia.value,
+    timestamp: new Date().toISOString()
+  };
+
+  let imagemFile = null;
+
+  if (tipo.value === "multipla") {
+    payload.enunciado = enunciadoME.value;
+    payload.alternativas = [...document.querySelectorAll(".alternativa")].map(a => ({
+      texto: a.querySelector("input").value,
+      correta: a.dataset.correta === "true"
+    }));
+    imagemFile = imagemME.files[0];
   }
 
-  preview.scrollIntoView({ behavior: "smooth" });
-}
+  if (tipo.value === "correlacao") {
+    payload.enunciado = enunciadoCOR.value;
+    payload.pares = [...document.querySelectorAll(".par")].map(p => {
+      const i = p.querySelectorAll("input");
+      return { colunaA: i[0].value, colunaB: i[1].value };
+    });
+    imagemFile = imagemCOR.files[0];
+  }
+
+  if (imagemFile) {
+    payload.imagem_base64 = await fileToBase64(imagemFile);
+    payload.imagem_nome = imagemFile.name;
+    payload.imagem_tipo = imagemFile.type;
+  }
+
+  try {
+    const r = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error();
+    alert("Questão enviada com sucesso!");
+    questaoForm.reset();
+  } catch {
+    alert("Erro ao enviar a questão.");
+  } finally {
+    envioEmAndamento = false;
+    submitBtn.disabled = false;
+  }
+};
 </script>
 
 </body>
