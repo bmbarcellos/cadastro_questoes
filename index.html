@@ -329,11 +329,23 @@ questaoForm.onsubmit = async e => {
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
+  // validação condicional de módulo → assunto
   if (modulo.value && !assunto.value) {
     alert("Selecione o assunto da questão.");
     envioEmAndamento = false;
     submitBtn.disabled = false;
     return;
+  }
+
+  // validação de múltipla escolha: pelo menos 1 alternativa correta
+  if (tipo.value === "multipla") {
+    const corretas = [...document.querySelectorAll(".alternativa")].filter(a => a.dataset.correta === "true");
+    if (corretas.length !== 1) {
+      alert("Marque exatamente uma alternativa como correta.");
+      envioEmAndamento = false;
+      submitBtn.disabled = false;
+      return;
+    }
   }
 
   const payload = {
