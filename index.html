@@ -2,208 +2,307 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Cadastro de Questões</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Questões – UFF</title>
 
 <style>
+:root {
+  --uff-blue: #003A8F;
+  --uff-light: #E6EEF8;
+  --bg: #F5F7FA;
+  --text: #1F2933;
+  --true: #0F9D58;
+  --false: #DB4437;
+}
+
+* { box-sizing: border-box; }
+
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  padding: 20px;
+  margin: 0;
+  font-family: Inter, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.header {
+  background: var(--uff-blue);
+  color: #fff;
+  text-align: center;
+  padding: 24px 16px;
 }
 
 .container {
-  max-width: 900px;
-  margin: auto;
+  max-width: 960px;
+  margin: 24px auto;
   background: #fff;
-  padding: 20px;
+  padding: 32px;
   border-radius: 8px;
 }
 
 label {
-  font-weight: bold;
+  font-weight: 600;
   display: block;
-  margin-top: 15px;
+  margin-top: 18px;
 }
 
-select, textarea, input[type="text"], input[type="file"] {
+.notice {
+  color: var(--false);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+input, select, textarea {
   width: 100%;
-  padding: 8px;
-  margin-top: 5px;
+  padding: 12px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #D1D5DB;
+  font-size: 16px;
 }
 
-textarea {
-  resize: vertical;
+textarea { min-height: 90px; }
+
+.section {
+  margin-top: 25px;
+  padding: 20px;
+  background: var(--uff-light);
+  border-radius: 8px;
 }
 
-button {
-  margin-top: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
+.alternativa, .par {
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 12px;
 }
 
-.alt, .par {
+.par { display: flex; gap: 10px; }
+
+.toggle {
   display: flex;
   gap: 10px;
   margin-top: 8px;
 }
 
-.alt input, .par input {
+.toggle button {
   flex: 1;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  color: #fff;
+  opacity: .5;
+  cursor: pointer;
 }
 
+.toggle button.active { opacity: 1; }
+.btn-true { background: var(--true); }
+.btn-false { background: var(--false); }
+
 .preview-img {
-  margin-top: 10px;
   max-width: 100%;
+  margin-top: 10px;
   display: none;
-  border: 1px solid #ccc;
   border-radius: 6px;
+  border: 1px solid #D1D5DB;
+}
+
+.submit {
+  margin-top: 24px;
+  padding: 14px;
+  width: 100%;
+  border-radius: 8px;
+  font-size: 16px;
+  background: var(--uff-blue);
+  color: #fff;
+  border: none;
+}
+
+.submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
 }
 </style>
 </head>
 
 <body>
+
+<div class="header">
+  <h1>Universidade Federal Fluminense</h1>
+  <p>Sistema Eletrônico de Registro de Questões</p>
+</div>
+
 <div class="container">
-<h2>Cadastro de Questões</h2>
+<form id="questaoForm">
+
+<label>E-mail institucional</label>
+<input id="email" type="email" required pattern="^[^@]+@id\.uff\.br$">
+<div class="notice">Obrigatório utilizar e-mail institucional @id.uff.br</div>
+
+<label>Grau de dificuldade</label>
+<select id="dificuldade" required>
+  <option value="">Selecione</option>
+  <option>Fácil</option>
+  <option>Médio</option>
+  <option>Difícil</option>
+</select>
 
 <label>Módulo</label>
-<select id="modulo"></select>
+<select id="modulo" required>
+  <option value="">Selecione</option>
+  <option>Anestesiologia</option>
+  <option>Dermatologia</option>
+  <option>Farmacologia</option>
+  <option>Gastroenterologia</option>
+  <option>Geriatria</option>
+  <option>Imunologia</option>
+  <option>Nefrologia</option>
+  <option>Neurologia</option>
+  <option>Pneumologia</option>
+  <option>Urologia</option>
+</select>
 
 <label>Assunto</label>
-<select id="assunto"></select>
+<select id="assunto" disabled></select>
 
 <label>Tipo de questão</label>
-<select id="tipo" onchange="trocarTipo()">
+<select id="tipo" required>
   <option value="">Selecione</option>
-  <option value="objetiva">Objetiva</option>
+  <option value="multipla">Múltipla escolha</option>
   <option value="correlacao">Correlação</option>
 </select>
 
-<label>Enunciado</label>
-<textarea id="enunciado" rows="4"></textarea>
+<div id="multipla" class="section" style="display:none">
+  <label>Enunciado</label>
+  <textarea id="enunciadoME"></textarea>
 
-<!-- 🔽 BOTÃO DE UPLOAD DE IMAGEM (NOVO) -->
-<label>Imagem da questão (opcional)</label>
-<input type="file" id="imagemQuestao" accept="image/*" onchange="previewImagem(event)">
-<img id="preview" class="preview-img">
-<!-- 🔼 FIM DO UPLOAD -->
+  <!-- UPLOAD DE IMAGEM -->
+  <label>Imagem da questão (opcional)</label>
+  <input type="file" id="imagem" accept="image/*">
+  <img id="preview" class="preview-img">
 
-<div id="objetiva" style="display:none;">
-  <label>Alternativas</label>
-  <div id="alts">
-    <div class="alt"><input placeholder="Alternativa A"></div>
-    <div class="alt"><input placeholder="Alternativa B"></div>
-    <div class="alt"><input placeholder="Alternativa C"></div>
-    <div class="alt"><input placeholder="Alternativa D"></div>
-    <div class="alt"><input placeholder="Alternativa E"></div>
-  </div>
+  <div id="alternativas"></div>
 </div>
 
-<div id="correlacao" style="display:none;">
-  <label>Pares para correlação</label>
+<div id="correlacao" class="section" style="display:none">
+  <label>Enunciado</label>
+  <textarea id="enunciadoCOR"></textarea>
+
+  <!-- UPLOAD DE IMAGEM -->
+  <label>Imagem da questão (opcional)</label>
+  <input type="file" id="imagemCor" accept="image/*">
+  <img id="previewCor" class="preview-img">
+
   <div id="pares"></div>
   <button type="button" onclick="addPar()">Adicionar par</button>
 </div>
 
 <label>Bibliografia</label>
-<textarea id="bibliografia" rows="2"></textarea>
+<textarea id="bibliografia" required maxlength="500"></textarea>
 
-<button type="submit">Salvar questão</button>
+<button class="submit" id="submitBtn" type="submit">Enviar questão</button>
+
+</form>
 </div>
 
 <script>
-const dados = {
-  "Anestesiologia": [
-    "Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização",
-    "Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia",
-    "Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"
-  ],
-  "Dermatologia": [
-    "Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses",
-    "Lesões pigmentadas","Micoses profundas","Sífilis"
-  ],
-  "Farmacologia": [
-    "Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos",
-    "Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides",
-    "Anti-tussígenos e antigripais","Farmacologia da asma"
-  ],
-  "Gastroenterologia": [
-    "Hepatites virais","Doença ulcerosa péptica","Diarréia e parasitose",
-    "Cirrose hepática e complicações","Pancreatites","Intolerância e alergias alimentares",
-    "Doença inflamatória intestinal","Tumores esofagogástricos","CCR",
-    "Síndrome do Intestino Irritável e constipação intestinal","DRGE","Hemorragia digestiva"
-  ],
-  "Geriatria": [
-    "Alterações fisiológicas do envelhecimento","Prescrição em idosos",
-    "Grandes síndromes geriátricas","Neurogeriatria"
-  ],
-  "Imunologia": [
-    "Anafilaxia","Urticária","Rinite alérgica","Asma grave",
-    "Alergia alimentar","Dermatite atópica","Erros inatos da imunidade",
-    "Reação adversa a droga"
-  ],
-  "Nefrologia": [
-    "Princípios do equilíbrio ácido-base","Distúrbios ácido-base (acidoses)",
-    "Balanço do K / distúrbios do K","Hipercalcemia",
-    "Regulação osmolar volêmica, distúrbio do Na e água",
-    "Síndrome nefrótica","Glomerulonefrites e síndrome nefrítica",
-    "Rim na gestação","Nefrite túbulo-intersticial","Síndromes edemigênicas",
-    "Insuficiência renal aguda","Doença renal crônica","Transplante renal"
-  ],
-  "Neurologia": [
-    "1º e 2º neurônios motores","Demência","Epilepsia",
-    "Doença de Parkinson e outros distúrbios do movimento",
-    "Cefaleias","Doença cerebrovascular","Coma e síncope",
-    "Neuropatias periféricas"
-  ],
-  "Urologia": [
-    "Incontinência urinária","PGM","Disfunção sexual masculina",
-    "Transplante renal","HPB","Trauma urológico",
-    "Litíase urinária","Urgências urológicas"
-  ]
+const WEBHOOK_URL = "https://webhook.artideia.com.br/webhook/cadastro_questoes";
+let envioEmAndamento = false;
+
+const assuntosPorModulo = { /* 그대로 유지 */ 
+  "Anestesiologia": ["Avaliação pré-anestésica","Anestesia geral","Bloqueios centrais","Monitorização","Reanimação cardiopulmonar","Reposição volêmica","Intubação orotraqueal e oxigenoterapia","Segurança do paciente","Gerenciamento da dor","Complicações em anestesia"],
+  "Dermatologia": ["Câncer de pele","Paraneoplasias","Farmacodermias","Leishmaniose","Buloses","Lesões pigmentadas","Micoses profundas","Sífilis"],
+  "Farmacologia": ["Anticonstipantes","Antidiarreicos","Antifiséticos, antieméticos, procinéticos","Farmacologia da doença ácido-péptica","Anti-histamínicos","Glicocorticóides","Anti-tussígenos e antigripais","Farmacologia da asma"],
+  "Gastroenterologia": ["Hepatites virais","Doença ulcerosa péptica","Diarréia e parasitose","Cirrose hepática e complicações","Pancreatites","Intolerância e alergias alimentares","Doença inflamatória intestinal","Tumores esofagogástricos","CCR","Síndrome do Intestino Irritável e constipação intestinal","DRGE","Hemorragia digestiva"],
+  "Geriatria": ["Alterações fisiológicas do envelhecimento","Prescrição em idosos","Grandes síndromes geriátricas","Neurogeriatria"],
+  "Imunologia": ["Anafilaxia","Urticária","Rinite alérgica","Asma grave","Alergia alimentar","Dermatite atópica","Erros inatos da imunidade","Reação adversa a droga"],
+  "Nefrologia": ["Princípios do equilíbrio ácido-base","Distúrbios ácido-base (acidoses)","Balanço do K / distúrbios do K","Hipercalcemia","Regulação osmolar volêmica, distúrbio do Na e água","Síndrome nefrótica","Glomerulonefrites e síndrome nefrítica","Rim na gestação","Nefrite túbulo-intersticial","Síndromes edemigênicas","Insuficiência renal aguda","Doença renal crônica","Transplante renal"],
+  "Neurologia": ["1º e 2º neurônios motores","Demência","Epilepsia","Doença de Parkinson e outros distúrbios do movimento","Cefaleias","Doença cerebrovascular","Coma e síncope","Neuropatias periféricas"],
+  "Pneumologia": ["Asma","DPOC","Tabagismo"],
+  "Urologia": ["Incontinência urinária","PGM1","PGM2","PGM3","Disfunção sexual masculina","Transplante renal","HPB","Trauma urológico","Litíase urinária","Urgências urológicas"]
 };
-
-const modulo = document.getElementById("modulo");
-const assunto = document.getElementById("assunto");
-
-Object.keys(dados).forEach(m => {
-  const op = document.createElement("option");
-  op.value = m;
-  op.textContent = m;
-  modulo.appendChild(op);
-});
 
 modulo.onchange = () => {
   assunto.innerHTML = "";
-  dados[modulo.value]?.forEach(a => {
-    const op = document.createElement("option");
-    op.value = a;
-    op.textContent = a;
-    assunto.appendChild(op);
+  assunto.disabled = true;
+
+  if (!assuntosPorModulo[modulo.value]) return;
+
+  assunto.disabled = false;
+  assunto.innerHTML = '<option value="">Selecione</option>';
+  assuntosPorModulo[modulo.value].forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    assunto.appendChild(opt);
   });
 };
 
-function trocarTipo() {
-  document.getElementById("objetiva").style.display = "none";
-  document.getElementById("correlacao").style.display = "none";
-  if (tipo.value === "objetiva") objetiva.style.display = "block";
-  if (tipo.value === "correlacao") correlacao.style.display = "block";
+tipo.onchange = () => {
+  multipla.style.display = "none";
+  correlacao.style.display = "none";
+  alternativas.innerHTML = "";
+  pares.innerHTML = "";
+
+  if (tipo.value === "multipla") {
+    multipla.style.display = "block";
+    for (let i = 0; i < 5; i++) addAlternativa();
+  }
+
+  if (tipo.value === "correlacao") {
+    correlacao.style.display = "block";
+    for (let i = 0; i < 3; i++) addPar();
+  }
+};
+
+function addAlternativa() {
+  const d = document.createElement("div");
+  d.className = "alternativa";
+  d.dataset.correta = "false";
+  d.innerHTML = `
+    <input required placeholder="Alternativa">
+    <div class="toggle">
+      <button type="button" class="btn-true">Verdadeira</button>
+      <button type="button" class="btn-false active">Falsa</button>
+    </div>`;
+  const [v,f] = d.querySelectorAll("button");
+
+  v.onclick = () => {
+    document.querySelectorAll(".alternativa").forEach(a => {
+      a.dataset.correta = "false";
+      a.querySelector(".btn-true").classList.remove("active");
+      a.querySelector(".btn-false").classList.add("active");
+    });
+    v.classList.add("active");
+    f.classList.remove("active");
+    d.dataset.correta = "true";
+  };
+
+  f.onclick = () => {
+    f.classList.add("active");
+    v.classList.remove("active");
+    d.dataset.correta = "false";
+  };
+
+  alternativas.appendChild(d);
 }
 
 function addPar() {
-  const div = document.createElement("div");
-  div.className = "par";
-  div.innerHTML = `<input placeholder="Coluna A"><input placeholder="Coluna B">`;
-  document.getElementById("pares").appendChild(div);
+  const d = document.createElement("div");
+  d.className = "par";
+  d.innerHTML = `<input required placeholder="Coluna A"><input required placeholder="Coluna B">`;
+  pares.appendChild(d);
 }
 
-function previewImagem(event) {
-  const img = document.getElementById("preview");
-  const file = event.target.files[0];
+function preview(fileInput, img) {
+  const file = fileInput.files[0];
   if (!file) return;
   img.src = URL.createObjectURL(file);
   img.style.display = "block";
 }
+
+imagem.onchange = () => preview(imagem, preview);
+imagemCor.onchange = () => preview(imagemCor, previewCor);
 </script>
+
 </body>
 </html>
