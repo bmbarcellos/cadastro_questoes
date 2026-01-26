@@ -329,11 +329,18 @@ questaoForm.onsubmit = async e => {
   envioEmAndamento = true;
   submitBtn.disabled = true;
 
+  if (modulo.value && !assunto.value) {
+    alert("Selecione o assunto da questão.");
+    envioEmAndamento = false;
+    submitBtn.disabled = false;
+    return;
+  }
+
   const payload = {
     email: email.value,
     dificuldade: dificuldade.value,
     modulo: modulo.value,
-    assunto: assunto.value,
+    assunto: assunto.value || null,
     tipo: tipo.value,
     bibliografia: bibliografia.value,
     timestamp: new Date().toISOString()
@@ -374,6 +381,10 @@ questaoForm.onsubmit = async e => {
     if (!r.ok) throw new Error();
     alert("Questão enviada com sucesso!");
     questaoForm.reset();
+    alternativas.innerHTML = "";
+    pares.innerHTML = "";
+    previewME.style.display = "none";
+    previewCOR.style.display = "none";
   } catch {
     alert("Erro ao enviar a questão.");
   } finally {
